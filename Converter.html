@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Expression Converter</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #141e30, #243b55);
+      color: #fff;
+      padding: 40px;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #00f7ff;
+      animation: glow 2s infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px #00f7ff; }
+      to { text-shadow: 0 0 20px #00f7ff, 0 0 30px #0ff; }
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+      transition: transform 0.3s ease-in-out;
+    }
+    .container:hover {
+      transform: scale(1.01);
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      font-size: 16px;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    input {
+      background: #e0e0e0;
+      color: #000;
+    }
+    button {
+      background: #00f7ff;
+      color: #000;
+      font-weight: bold;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #00d1d1;
+    }
+    #output {
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 18px;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      background-color: #ffffff0a;
+    }
+    th, td {
+      border: 1px solid #00f7ff;
+      padding: 10px;
+      text-align: center;
+      color: #fff;
+    }
+    th {
+      background-color: #00f7ff33;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Expression Converter</h1>
+
+  <div class="container">
+    <input type="text" id="expression" placeholder="Enter expression (e.g. a+b*c or 2+x*y)">
+    <button onclick="convertExpression()">Convert All</button>
+    <button onclick="convertPrefix()">Show Only Prefix</button>
+    <button onclick="convertPostfix()">Show Only Postfix</button>
+
+    <div id="output">
+      Output will appear here...
+    </div>
+  </div>
+
+  <script>
+    function precedence(op) {
+      if (op === '+' || op === '-') return 1;
+      if (op === '*' || op === '/') return 2;
+      return 0;
+    }
+
+    function isOperand(ch) {
+      return /[a-zA-Z0-9]/.test(ch);
+    }
+
+    function isOperator(ch) {
+      return ['+', '-', '*', '/'].includes(ch);
+    }
+
+    function infixToPostfix(expr) {
+      let stack = [], result = '', steps = [];
+      for (let ch of expr) {
+        if (ch === ' ') continue;
+        if (isOperand(ch)) {
+          result += ch;
+        } else if (ch === '(') {
+          stack.push(ch);
+        } else if (ch === ')') {
+          while (stack.length && stack[stack.length - 1] !== '(') {
+            result += stack.pop();
+          }
+          stack.pop();
+        } else if (isOperator(ch)) {
+          while (stack.length && precedence(stack[stack.length - 1]) >= precedence(ch)) {
+            result += stack.pop();
+          }
+          stack.push(ch);
+        }
+        steps.push([ch, stack.join(' '), result]);
+      }
+      while (stack.length) {
+        result += stack.pop();
+        steps.push(['-', stack.join(' '), result]);
+      }
+      return { result, steps };
+    }
+
+    function infixToPrefix(expr) {
+      let reversed = expr.split('').reverse().map(ch => {
+        if (ch === '(') return ')';
+        if (ch === ')') return '(';
+        return ch;
+      }).join('');
+
+      let stack = [], result = '', steps = [];
+      for (let ch of reversed) {
+        if (ch === ' ') continue;
+        if (isOperand(ch)) {
+          result += ch;
+        } else if (ch === '(') {
+          stack.push(ch);
+        } else if (ch === ')') {
+          while (stack.length && stack[stack.length - 1] !== '(') {
+            result += stack.pop();
+          }
+          stack.pop();
+        } else if (isOperator(ch)) {
+          while (stack.length && precedence(stack[stack.length - 1]) > precedence(ch)) {
+            result += stack.pop();
+          }
+          stack.push(ch);
+        }
+        steps.push([ch, stack.join(' '), result.split('').reverse().join('')]);
+      }
+      while (stack.length) {
+        result += stack.pop();
+        steps.push(['-', stack.join(' '), result.split('').reverse().join('')]);
+      }
+      return { result: result.split('').reverse().join(''), steps };
+    }
+
+    function createTable(steps, label) {
+      let table = `<h3>${label} Conversion Table</h3><table><tr><th>Read Symbol</th><th>Stack</th><th>${label}</th></tr>`;
+      for (let [sym, st, pf] of steps) {
+        table += `<tr><td>${sym}</td><td>${st}</td><td>${pf}</td></tr>`;
+      }
+      table += `</table>`;
+      return table;
+    }
+
+    function convertExpression() {
+      const input = document.getElementById("expression").value.replace(/\s+/g, '');
+      const postfixData = infixToPostfix(input);
+      const prefixData = infixToPrefix(input);
+
+      document.getElementById("output").innerHTML = `
+        <strong>Infix:</strong> ${input}<br>
+        <strong>Postfix:</strong> ${postfixData.result}<br>
+        <strong>Prefix:</strong> ${prefixData.result}
+        <br><br>
+        ${createTable(postfixData.steps, 'Postfix')}
+        ${createTable(prefixData.steps, 'Prefix')}
+      `;
+    }
+
+    function convertPrefix() {
+      const input = document.getElementById("expression").value.replace(/\s+/g, '');
+      const prefixData = infixToPrefix(input);
+      document.getElementById("output").innerHTML = `
+        <strong>Infix:</strong> ${input}<br>
+        <strong>Prefix:</strong> ${prefixData.result}<br><br>
+        ${createTable(prefixData.steps, 'Prefix')}
+      `;
+    }
+
+    function convertPostfix() {
+      const input = document.getElementById("expression").value.replace(/\s+/g, '');
+      const postfixData = infixToPostfix(input);
+      document.getElementById("output").innerHTML = `
+        <strong>Infix:</strong> ${input}<br>
+        <strong>Postfix:</strong> ${postfixData.result}<br><br>
+        ${createTable(postfixData.steps, 'Postfix')}
+      `;
+    }
+  </script>
+
+</body>
+</html>
