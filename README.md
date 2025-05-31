@@ -17,7 +17,6 @@ An interactive and animated web tool that visually converts infix expressions to
 
 ## 🚀 Live Demo
 [🔗 Click here to try it online](https://priyanshii11.github.io/StackFlow/)  
-*(replace with your GitHub Pages link)*
 
 ---
 
